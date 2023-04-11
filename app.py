@@ -18,6 +18,18 @@ def get_profile_report(df):
     profile_df = df.profile_report()
     return profile_df
 
+@st.cache_data
+def run_setup(df, target):
+    setup(df, target=target)
+    return pull()
+
+@st.cache_data
+def run_compare_models():
+    best_model = compare_models()
+    compare_df = pull()
+    save_model(best_model, 'best_model')
+    return compare_df
+
 if os.path.exists('./dataset.csv'): 
     df = pd.read_csv('dataset.csv', index_col=None)
 else:
@@ -49,17 +61,17 @@ if choice == "Profiling" and not df.empty:
 if choice == "Modelling" and not df.empty:
     chosen_target = st.selectbox('Choose the Target Column', df.columns)
     if st.button('Run Modelling'): 
-        setup(df, target=chosen_target)
-        setup_df = pull()
+        setup_df = run_setup(df, chosen_target)
         st.dataframe(setup_df)
-        best_model = compare_models()
-        compare_df = pull()
+        compare_df = run_compare_models()
         st.dataframe(compare_df)
-        save_model(best_model, 'best_model')
         with open('best_model.pkl', 'rb') as f: 
             st.download_button('Download Model', f, file_name="best_model.pkl")
 
 if st.button("Clear Data"):
     df = pd.DataFrame()
-    os.remove("dataset.csv")
-    st.warning("Data has been cleared!") 
+    if os.path.exists("dataset.csv"):
+        os.remove("dataset.csv")
+        st.success("Data has been cleared!")
+    else:
+        st.warning("No data found to clear!")
